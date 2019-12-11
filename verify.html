@@ -1,0 +1,49 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>VK OK</title>
+  <meta name="description" content="Landing here after auth with VK">
+  <meta name="author" content="Sergei Sokolov">
+  <style>
+	  body {background: #edeef0}
+	</style>
+
+</head>
+
+<body>
+	<script type="text/javascript">
+		const hash = window.location.hash.substring(1); //Puts hash in variable, and removes the # character
+		
+		function out(text) {
+			document.body.appendChild(document.createTextNode(text));			
+		}
+		
+		if ('URLSearchParams' in window) {
+			const params = new URLSearchParams(hash);
+			const data = {
+				access_token      : params.get('access_token'),
+				expires_in        : params.get('expires_in'),
+				user_id           : params.get('user_id'),
+				state             : params.get('state'),
+
+				error             : params.get('error'),
+				error_description : params.get('error_description'),
+			};
+
+			if(window.opener) {
+				window.opener.postMessage(data, 'https://deserter.io');
+				window.setTimeout( _ => window.close(), 0);
+			} else {
+				out('Наверное, уже закрыли окно с приложением..');
+				console.error("No window.opener?", window);
+			}
+
+		} else {
+			out('Браузер не поддерживается или устарел. Обновите его, пожалуйста.');
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>VK auth test</title>
+  <meta name="description" content="">
+  <meta name="author" content="Sergei Sokolov">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+</head>
+
+<body>
+	
+	<button id="btn-login">Войти через ВК</button>
+  
+  <script>
+	  document.getElementById('btn-login').addEventListener('click', () => {
+		  
+		  getVKLoginPromise (4096 /* messages */, 6721365)
+		  .then (r => {
+			  console.log("Got new token:" + r.access_token);
+			  
+			  document.body.appendChild(document.createTextNode("OK! Got new token"));
+			  
+			  // Save to LS and procede from here
+			  
+		  })
+		  .catch(err => {
+			  console.error("VK login failed", err);
+
+			  document.body.appendChild(document.createTextNode("FAIL. Some error occured or user declined access"));
+		  });
+	  });
+	  
+	  
+	  function getVKLoginPromise(scope, client_id) {
+		  
+		  return new Promise((resolve, reject) => {
+				  
+			  const params = {
+				  client_id    : client_id,
+				  redirect_uri : 'https://deserter.io/messages.save/verify.html',
+				  display      : 'popup',
+				  scope        : scope,
+				  response_type: 'token',
+				  v            : '5.85',
+				  state        : 12345,
+				  revoke       : 1,
+			  };
+			  
+			  var queryString = Object.keys(params)
+			  	.map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+			  	.join('&')
+			  ;
+			   
+			  window.open(
+				  'https://oauth.vk.com/authorize?' + queryString,
+				  'VK login',
+				  'menubar=0,toolbar=0,status=0,width=650,height=400'
+				);
+
+			  // get feedback
+			  function onMessage(m) {
+				  console.log("Message received:", m);
+				  window.removeEventListener('message', onMessage);
+
+				  const data = m.data;
+
+				  if (data.access_token) {
+					  resolve(data);
+				  } else if (data.error) {
+					  reject(data);
+				  }
+			  }
+			  
+			  window.addEventListener('message', onMessage);
+
+		  });
+
+	  };
+	  
+	  
+
+  </script>
+</body>
+</html>

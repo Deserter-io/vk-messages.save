@@ -1,0 +1,132 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>VK messages.save</title>
+  <meta name="description" content="Сохранить сообщения диалога ВКонтакте">
+  <meta name="author" content="Sergei Sokolov">
+
+
+</head>
+
+<body>
+
+	<button id="btn-login">Войти через ВК</button>
+  
+  <script>
+	  
+	  // Web worker setup
+	  const worker = new Worker("worker.js?213567");
+	  worker.addEventListener("message", e => {
+		  console.log("Msg from worker received:", e);
+	  });
+	  
+	  
+	  
+	  document.getElementById('btn-login').addEventListener('click', () => {
+		  
+		  getVKLoginPromise (4096 /* messages */, 6721365)
+		  .then (r => {
+			  console.log("Got new token:" + r.access_token, r);
+			  
+			  document.body.appendChild(document.createTextNode("OK! Got new token"));
+			  
+			  // Save to LS and procede from here
+			  window.localStorage.setItem('vktoken', r.access_token);
+			  window.localStorage.setItem('vkuserid', r.user_id);
+			  
+			  worker.postMessage({method: "messages.getConversations", params:{
+				  offset: 0,
+				  count: 10,
+				  filter: "all",
+				  extended: 0,
+// 				  start_message_id: 0,
+					access_token: r.access_token,
+					v: '5.85'
+			  }});
+			  
+			  
+			  
+			  
+			  
+		  })
+		  .catch(err => {
+			  console.error("VK login failed", err);
+
+			  document.body.appendChild(document.createTextNode("FAIL. Some error occured or user declined access"));
+		  });
+	  });
+	  
+	  
+	  function getVKAPIPromise(methodName, params) {
+		  return new Promise((res, rej) => {
+			  if (!params.hasOwnProperty('v')) params.v = '5.85';
+
+			  var queryString = Object.keys(params)
+			  	.map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+			  	.join('&')
+			  ;
+			  
+			  
+
+		  });
+	  }
+	  
+	  
+	  
+	  function getVKLoginPromise(scope, client_id) {
+		  
+		  return new Promise((resolve, reject) => {
+				  
+			  const params = {
+				  client_id    : client_id,
+				  redirect_uri : 'https://oauth.vk.com/blank.html',
+				  display      : 'popup',
+				  scope        : scope,
+				  response_type: 'token',
+				  v            : '5.85',
+				  state        : 12345,
+				  revoke       : 1,
+			  };
+			  
+			  var queryString = Object.keys(params)
+			  	.map(key => encodeURIComponent(key) + '=' + encodeURIComponent(params[key]))
+			  	.join('&')
+			  ;
+			   
+			  const vkAuthWindow = window.open(
+				  'https://oauth.vk.com/authorize?' + queryString,
+				  'VK login',
+				  'menubar=0,toolbar=0,status=0,width=650,height=400'
+				);
+				
+			  // get feedback
+			  function onMessage(m) {
+				  console.log("Message received:", m);
+				  window.removeEventListener('message', onMessage);
+
+				  const data = m.data;
+				  const echo = data["VK Echo"];
+
+				  if (echo) {
+					  if (echo.access_token) {
+						  m.source.postMessage("VK Echo.close", "https://oauth.vk.com/blank.html");
+						  resolve(echo);
+					  }
+				    else if (echo.error) reject(echo);
+				  } else {
+					  reject(data);
+				  }
+			  }
+			  
+			  window.addEventListener('message', onMessage);
+
+		  });
+
+	  };
+  </script>
+
+</body>
+</html>
